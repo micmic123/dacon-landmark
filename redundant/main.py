@@ -8,13 +8,17 @@ import argparse
 import torch
 from torch import nn
 from dataset import get_dataloader
-from model import ResNet18
+from model import ResNet18, MobileNetV2
 
-base = "/content/drive/My Drive/datasets/landmark_kr/public/"
+base = "/content/drive/My Drive/datasets/landmark_kr"
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', default=base)
-parser.add_argument('--test_sample_csv', default=f"{base}/sample_submission.csv")
+parser.add_argument('--train_dir', default=f"{base}/public/train/")
+parser.add_argument('--train_csv_dir', default=f"{base}/public/train.csv")
+parser.add_argument('--train_csv_exist_path', default=f"{base}/public/train_exist.csv")
+parser.add_argument('--test_dir', default=f"{base}/public/test/")
+parser.add_argument('--test_csv_dir', default=f"{base}/public/sample_submission.csv")
+parser.add_argument('--test_csv_exist_path', default=f"{base}/public/sample_submission_exist.csv")
 
 parser.add_argument('--image_size', dest='image_size', type=int, default=256)
 parser.add_argument('--epochs', dest='epochs', type=int, default=100)
@@ -41,7 +45,7 @@ os.makedirs(snapshot_dir, exist_ok=True)
 os.makedirs(log_dir, exist_ok=True)
 
 
-train_dataloader, test_dataloader = get_dataloader(args, test=args.test)
+train_dataloader, test_dataloader = get_dataloader(args)
 
 
 # train
@@ -124,5 +128,5 @@ if not args.test:
     train(model, epoch, itr)
     test(model)
 else:
-    model.load(args.snapshot)
+    model.load(args.resume)
     test(model)

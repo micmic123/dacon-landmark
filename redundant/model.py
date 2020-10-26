@@ -36,10 +36,53 @@ class ResNet18:
         self.optimizer = optim.Adam(self.model.parameters(), lr=config['learning_rate'], weight_decay=config['wd'])
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=10, gamma=0.1)
 
-        # # MobileNet
-        # self.model = models.mobilenet_v2(pretrained=True)
-        # num_ftrs = self.model.classifier[1].in_features
-        # self.model.classifier[1] = nn.Linear(num_ftrs, config['class_num'])
+    def save(self, epoch, itr):
+        snapshot = {
+            'epoch': epoch,
+            'itr': itr,
+            'batch_size': self.config['batch_size'],
+            'image_size': self.config['image_size'],
+            'model': self.model.state_dict(),
+            'optimizer': self.optimizer.state_dict()
+        }
+
+        torch.save(snapshot, os.path.join(self.config['snapshot_dir'], f'epoch_{epoch:04}_itr_{itr:04}.pt'))
+
+    def load(self, path):
+        state = torch.load(path)
+        epoch = state['epoch']
+        itr = state['itr']
+        self.config['batch_size'] = state['batch_size']
+        self.config['image_size'] = state['image_size']
+        self.model.load_state_dict(state['model'])
+        self.optimizer.load_state_dict(state['optimizer'])
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10, gamma=0.1, last_epoch=epoch)
+
+        print(f'Loaded from epoch: {epoch}, iter: {itr}')
+
+        return epoch, itr
+
+    def train(self):
+        self.model.train()
+
+    def eval(self):
+        self.model.eval()
+
+    def __call__(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+
+class MobileNetV2:
+    def __init__(self, config):
+        # https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.resnet18
+        self.config = config
+        self.model = models.mobilenet_v2(pretrained=True)
+        num_ftrs = self.model.classifier[1].in_features
+        self.model.classifier[1] = nn.Linear(num_ftrs, config['class_num'])
+        self.model = self.model.cuda()
+        self.criterion = nn.CrossEntropyLoss()
+        self.optimizer = optim.Adam(self.model.parameters(), lr=config['learning_rate'], weight_decay=config['wd'])
+        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=10, gamma=0.1)
 
     def save(self, epoch, itr):
         snapshot = {

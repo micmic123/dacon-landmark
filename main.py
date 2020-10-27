@@ -66,7 +66,7 @@ def train(model, epoch, itr):
                 model.save(epoch, itr)
 
             if itr % args.test_itr == 0:
-                test(model, f'result_epoch_0{epoch + 1:03}.csv')
+                test(model, f'result_epoch_{epoch + 1:04}_itr_{itr + 1:04}.csv')
 
             if itr == len(train_dataloader):
                 itr = 0

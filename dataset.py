@@ -1,11 +1,7 @@
 import numpy as np
-import pandas as pd
 import os
-import unicodedata
 import h5py
-from glob import glob
-from PIL import Image
-from tqdm import tqdm
+import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
@@ -20,11 +16,11 @@ class TrainDataset(Dataset):
     def __init__(self, data_dir, transform=None):
         self.data_dir = data_dir
         self.img_path = os.path.join(self.data_dir, 'train.h5')
+        self.label_path = os.path.join(self.data_dir, 'train_label.h5')
         self.transform = transform
 
-        F = h5py.File(self.img_path, 'r')
-        self.imgs = F['img']
-        self.labels = F['label']
+        self.imgs = h5py.File(self.img_path, 'r')['img']
+        self.labels = torch.LongTensor(np.asarray(h5py.File(self.label_path, 'r')['label']))
 
         print(f'Trainset: {len(self.imgs)} images')
 

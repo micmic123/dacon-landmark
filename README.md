@@ -21,4 +21,6 @@
 `` python main.py --test --test_batch_size=256 --snapshot=./2020-10-28_22_28_35/last.pt``
 
 ### Note
-- In `main.py`, set `base` to be path of your dataset directory including `test.h5` and etc, e.g. `/data/micmic123/tmp/`.
+- In `main.py` set `base` to be path of your dataset directory including `test.h5` and etc, e.g. `/data/micmic123/tmp/`.
+
+- In `main.py`, set `os.environ['CUDA_VISIBLE_DEVICES']` as you want.

@@ -1,6 +1,8 @@
 import numpy as np
 import os
 import h5py
+from PIL import Image
+from tqdm import tqdm
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
@@ -21,6 +23,8 @@ class TrainDataset(Dataset):
 
         self.imgs = h5py.File(self.img_path, 'r')['img']
         self.labels = torch.LongTensor(np.asarray(h5py.File(self.label_path, 'r')['label']))
+
+        self.imgs = [Image.fromarray(img) for img in tqdm(self.imgs)]
 
         print(f'Trainset: {len(self.imgs)} images')
 
@@ -46,6 +50,8 @@ class TestDataset(Dataset):
         self.imgs = h5py.File(self.img_path, 'r')['img']
         self.ids = np.load(self.id_path)
 
+        self.imgs = [Image.fromarray(img) for img in tqdm(self.imgs)]
+
         print(f'Testset: {len(self.imgs)} images')
 
     def __len__(self):
@@ -63,7 +69,7 @@ class TestDataset(Dataset):
 def get_dataloader(args, test=False):
     data_transforms = {
         'train': transforms.Compose([
-            transforms.ToPILImage(),
+            # transforms.ToPILImage(),
             transforms.RandomResizedCrop(args.image_size),
             # transforms.Resize((224, 224)),
             transforms.RandomHorizontalFlip(),
@@ -71,7 +77,7 @@ def get_dataloader(args, test=False):
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'test': transforms.Compose([
-            transforms.ToPILImage(),
+            # transforms.ToPILImage(),
             transforms.Resize((args.image_size, args.image_size)),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])

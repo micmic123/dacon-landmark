@@ -8,27 +8,27 @@ import argparse
 import torch
 from torch import nn
 from dataset import get_dataloader
-from model import ResNet18
+from model import ResNet18, ResNet50, EffNet
 
-base = "/content/drive/My Drive/datasets/landmark_kr/public/"
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+base = "/data/micmic123/tmp/"
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', default=base)
 parser.add_argument('--test_sample_csv', default=f"{base}/sample_submission.csv")
-
 parser.add_argument('--image_size', dest='image_size', type=int, default=256)
 parser.add_argument('--epochs', dest='epochs', type=int, default=100)
 parser.add_argument('--learning_rate', dest='learning_rate', type=float, default=0.001)
 parser.add_argument('--wd', dest='wd', type=float, default=1e-5)
 parser.add_argument('--batch_size', type=int, default=256)
-parser.add_argument('--test_batch_size', type=int, default=1024)
+parser.add_argument('--test_batch_size', type=int, default=256)
 
 parser.add_argument('--test', default=False, action='store_true')
 parser.add_argument('--resume', default='', help='snapshot path')
 parser.add_argument('--snapshot', default='', help='snapshot path')
 
-parser.add_argument('--test_itr', type=int, default=50)
-parser.add_argument('--save_itr', type=int, default=50)
+parser.add_argument('--test_itr', type=int, default=100)
+parser.add_argument('--save_itr', type=int, default=100)
 args = parser.parse_args()
 
 
@@ -66,7 +66,8 @@ def train(model, epoch, itr):
                 model.save(epoch, itr)
 
             if itr % args.test_itr == 0:
-                test(model, f'result_epoch_{epoch + 1:04}_itr_{itr + 1:04}.csv')
+                test(model, f'result_epoch_0{epoch + 1:03}_itr_{itr + 1:04}.csv.csv')
+                model.train()
 
             if itr == len(train_dataloader):
                 itr = 0
@@ -114,7 +115,9 @@ config = {
     'image_size': args.image_size
 }
 # model = MobileNetV2(config)
-model = ResNet18(config)
+# model = ResNet18(config)
+# model = ResNet50(config)
+model = EffNet(config)
 
 if not args.test:
     epoch, itr = 0, 0

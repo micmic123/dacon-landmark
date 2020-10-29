@@ -5,41 +5,22 @@ from torch.nn import Conv2d, AdaptiveAvgPool2d, Linear
 import torch.nn.functional as F
 from torch.optim import lr_scheduler
 from torchvision import models
+from efficientnet_pytorch import EfficientNet
 
 
-class SimpleNet(nn.Module):
-    def __init__(self):
-        super(SimpleNet, self).__init__()
-        self.conv1 = Conv2d(3, 64, (3, 3), (1, 1), (1, 1))
-        self.conv2 = Conv2d(64, 64, (3, 3), (1, 1), (1, 1))
-        self.conv3 = Conv2d(64, 64, (3, 3), (1, 1), (1, 1))
-        self.fc = Linear(64, 1049)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = F.relu(self.conv3(x))
-        x = AdaptiveAvgPool2d(1)(x).squeeze()
-        x = self.fc(x)
-        return x
-
-
-class ResNet18:
+class BaseNet:
     def __init__(self, config):
-        # https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.resnet18
         self.config = config
-        self.model = models.resnet18(pretrained=True)
-        num_ftrs = self.model.fc.in_features
-        self.model.fc = nn.Linear(num_ftrs, config['class_num'])
+
+        self._build()
+
         self.model = self.model.cuda()
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=config['learning_rate'], weight_decay=config['wd'])
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=10, gamma=0.1)
 
-        # # MobileNet
-        # self.model = models.mobilenet_v2(pretrained=True)
-        # num_ftrs = self.model.classifier[1].in_features
-        # self.model.classifier[1] = nn.Linear(num_ftrs, config['class_num'])
+    def _build(self):
+        raise NotImplementedError()
 
     def save(self, epoch, itr):
         snapshot = {
@@ -75,3 +56,43 @@ class ResNet18:
 
     def __call__(self, *args, **kwargs):
         return self.model(*args, **kwargs)
+
+
+# https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.resnet18
+class ResNet18(BaseNet):
+    def __init__(self, config):
+        super.__init__(config)
+
+    def _build(self):
+        self.model = models.resnet18(pretrained=True)
+        num_ftrs = self.model.fc.in_features
+        self.model.fc = nn.Linear(num_ftrs, self.config['class_num'])
+
+
+class ResNet50(BaseNet):
+    def __init__(self, config):
+        super.__init__(config)
+
+    def _build(self):
+        self.model = models.resnet50(pretrained=True)
+        num_ftrs = self.model.fc.in_features
+        self.model.fc = nn.Linear(num_ftrs, self.config['class_num'])
+
+
+class MobileNetV2(BaseNet):
+    def __init__(self, config):
+        super.__init__(config)
+
+    def _build(self):
+        self.model = models.mobilenet_v2(pretrained=True)
+        num_ftrs = self.model.classifier[1].in_features
+        self.model.classifier[1] = nn.Linear(num_ftrs, self.config['class_num'])
+
+
+class EffNet(BaseNet):
+    def __init__(self, config):
+        super.__init__(config)
+
+    def _build(self):
+        self.model = EfficientNet.from_pretrained('efficientnet-b1', num_classes=self.config['class_num'])
+        self.model = self.model.cuda()

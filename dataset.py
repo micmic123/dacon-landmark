@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import random
 import h5py
 from PIL import Image
 from tqdm import tqdm
@@ -24,7 +25,16 @@ class TrainDataset(Dataset):
         self.imgs = h5py.File(self.img_path, 'r')['img']
         self.labels = torch.LongTensor(np.asarray(h5py.File(self.label_path, 'r')['label']))
 
-        self.imgs = [Image.fromarray(img) for img in tqdm(self.imgs)]
+        self.reverse_index = dict()
+
+        # TODO
+        # try to avoid for loop
+        for i, v in enumerate(self.labels) :
+            v = v.tolist()
+            if v in self.reverse_index :
+                self.reverse_index[v].append(i)
+            else :
+                self.reverse_index[v] = [i]
 
         print(f'Trainset: {len(self.imgs)} images')
 
@@ -32,12 +42,21 @@ class TrainDataset(Dataset):
         return len(self.imgs)
 
     def __getitem__(self, idx):
-        image = self.imgs[idx]
+        label = self.labels[idx].tolist()
+        two_idx = random.sample(self.reverse_index[label],2)
+        image0 = self.imgs[two_idx[0]]
+        image1 = self.imgs[two_idx[1]]
 
         if self.transform:
-            image = self.transform(image)
+            image0 = self.transform(image0)
+            image1 = self.transform(image1)
 
-        return image, self.labels[idx]
+        image0 = torch.unsqueeze(image0, 0)
+        image1 = torch.unsqueeze(image1, 0)
+
+        image = torch.cat((image0,image1), 0)
+
+        return image, label
 
 
 class TestDataset(Dataset):
@@ -49,8 +68,6 @@ class TestDataset(Dataset):
 
         self.imgs = h5py.File(self.img_path, 'r')['img']
         self.ids = np.load(self.id_path)
-
-        self.imgs = [Image.fromarray(img) for img in tqdm(self.imgs)]
 
         print(f'Testset: {len(self.imgs)} images')
 
@@ -69,7 +86,7 @@ class TestDataset(Dataset):
 def get_dataloader(args, test=False):
     data_transforms = {
         'train': transforms.Compose([
-            # transforms.ToPILImage(),
+            transforms.ToPILImage(),
             transforms.RandomResizedCrop(args.image_size),
             # transforms.Resize((224, 224)),
             transforms.RandomHorizontalFlip(),
@@ -77,7 +94,7 @@ def get_dataloader(args, test=False):
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'test': transforms.Compose([
-            # transforms.ToPILImage(),
+            transforms.ToPILImage(),
             transforms.Resize((args.image_size, args.image_size)),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])

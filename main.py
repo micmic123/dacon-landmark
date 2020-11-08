@@ -56,10 +56,9 @@ def train(model, epoch, itr):
             image = image.view([-1]+list(image.shape)[2:])
 
             pred = model(image)
+            pred = pred.view([pred.shape[0]//2,2]+list(pred.shape)[1:])
 
-            print(pred.shape)
-            sys.exit()
-            loss = model.criterion(input=pred, target=label)
+            loss = model.criterion(pred[:,0],pred[:,1])
 
             model.optimizer.zero_grad()
             loss.backward()
